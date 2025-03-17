@@ -6,4 +6,10 @@
 #define TARGET_FPS 30
 #define PORT 4563
 
+/*----COMPILATION-FLAGS----*/
+
+#define DEBUG 
+
+/*-------------------------*/
+
 #endif

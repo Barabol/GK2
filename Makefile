@@ -5,8 +5,8 @@ OUTPUT_FILE = test.out
 RUN_ARGS = none 
 COMPILATION_DIR = ./
 
-FILES := ./main.c 
-DEPENDENCIES :=   ./src/*/*.h ./src/*/*.c ./src/*.h -lraylib
+FILES := ./main.cpp 
+DEPENDENCIES := ./src/*/*.cpp ./src/*/*.h ./src/*/*.c ./src/*.h -lraylib
 
 MEMTESTER := valgrind
 MEMTEST_OPT := --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file=memtest.log
