@@ -1,6 +1,7 @@
 #ifndef __CHESS_RENDERER__
 #define __CHESS_RENDERER__
 #include "../chessLogic/board.h"
-void renderBoard(board *board);
+#include "../networking/socket.h"
+void renderBoard(board *board, Conn *con);
 
 #endif

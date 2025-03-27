@@ -108,6 +108,8 @@ returnType board::move(const char px, const char py, const char x,
    return retval;
 }
 void board::kinglogic(const char x, const char y) {
+	//if(this->layout[x][y] == nullptr)
+	//	return;
    enum { Move, Attack };
    BMatrix holder[2];
    holder[Move].clear();

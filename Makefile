@@ -2,7 +2,7 @@ COMPILER = g++
 DEBUGGER = gdb
 
 OUTPUT_FILE = test.out
-RUN_ARGS = none 
+RUN_ARGS = 127.0.0.1
 COMPILATION_DIR = ./
 
 FILES := ./main.cpp 
@@ -17,6 +17,9 @@ build:
 run:
 	$(COMPILATION_DIR)$(OUTPUT_FILE) $(RUN_ARGS)
 
+server:
+	$(COMPILATION_DIR)$(OUTPUT_FILE)
+
 debug:
 	$(COMPILER) $(FILES) $(DEPENDENCIES) -o $(OUTPUT_FILE) -p 
 	$(DEBUGGER) --args $(COMPILATION_DIR)$(OUTPUT_FILE) $(RUN_ARGS)
@@ -29,4 +32,6 @@ lines:
 	echo "Header files lines: ";\
 	find . -name '*.h' | sed 's/.*/"&"/' | xargs wc -l;\
 	echo "C files lines: ";\
-	find . -name '*.c' | sed 's/.*/"&"/' | xargs wc -l
+	find . -name '*.c' | sed 's/.*/"&"/' | xargs wc -l;\
+	echo "C++ files lines: ";\
+	find . -name '*.cpp' | sed 's/.*/"&"/' | xargs wc -l
