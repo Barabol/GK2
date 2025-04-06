@@ -5,10 +5,11 @@
 #define INIT_WIN_HEIGHT 720
 #define TARGET_FPS 30
 #define PORT 4563
+#define PLAYER_TIME 1200
 
 /*----COMPILATION-FLAGS----*/
 
-#define DEBUG 
+#define DEBUG
 
 /*-------------------------*/
 

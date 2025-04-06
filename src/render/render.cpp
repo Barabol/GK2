@@ -2,6 +2,7 @@
 #include "../config.h"
 #include <cstdio>
 #include <raylib.h>
+#include <raymath.h>
 void renderBoard(board *board, Conn *con) {
    static const char *names[2] = {"White", "Black"};
    InitWindow(INIT_WIN_WIDTH, INIT_WIN_HEIGHT, "projekt grafika II");
@@ -16,16 +17,43 @@ void renderBoard(board *board, Conn *con) {
    // DisableCursor();
    SetTargetFPS(TARGET_FPS);
    char timeText[100];
-   unsigned long time[2] = {1201, 1201};
+   unsigned long time[2] = {PLAYER_TIME, PLAYER_TIME};
    float frameTime = 0;
    int piece[2] = {-1, -1};
    int hit[2] = {-1, -1};
    bool selected = false;
    bool notMoved = false;
    bool handled = true;
+   Image background = LoadImage("src/img/background.jpg");
+   ImageResize(&background, INIT_WIN_WIDTH, INIT_WIN_HEIGHT);
+   Texture2D texture = LoadTextureFromImage(background);
    int selfColor = con->flags & IS_SERVER ? 0 : 1;
    BMatrix moves;
+   Model piecesObj[6] = {LoadModel("src/pieces/pionek.obj"),
+                         LoadModel("src/pieces/konik.obj"),
+                         LoadModel("src/pieces/ksiadz.obj"),
+                         LoadModel("src/pieces/wieza.obj"),
+                         LoadModel("src/pieces/szpetna_krolowa.obj"),
+                         LoadModel("src/pieces/szpetny_krol.obj")};
+   Texture2D pieceTx[6][2] = {
+       {LoadTexture("src/pieces/pionek_bialy.png"),
+        LoadTexture("src/pieces/pionek_czarny.png")},
 
+       {LoadTexture("src/pieces/konik_bialy.png"),
+        LoadTexture("src/pieces/konik_czarny.png")},
+
+       {LoadTexture("src/pieces/ksiadz_bialy.png"),
+        LoadTexture("src/pieces/ksiadz_czarny.png")},
+
+       {LoadTexture("src/pieces/wieza_biala.png"),
+        LoadTexture("src/pieces/wieza_czarna.png")},
+
+       {LoadTexture("src/pieces/szpetna_krolowa_biala.png"),
+        LoadTexture("src/pieces/szpetna_krolowa_czarna.png")},
+
+       {LoadTexture("src/pieces/szpetny_krol_bialy.png"),
+        LoadTexture("src/pieces/szpetny_krol_czarny.png")}};
+   float knightRotation = 1.57079633f;
    while (!WindowShouldClose()) {
       if (con->flags & CONNECTED)
          frameTime += GetFrameTime();
@@ -37,13 +65,17 @@ void renderBoard(board *board, Conn *con) {
       UpdateCamera(&mainCammera, CAMERA_FREE);
       BeginDrawing();
       ClearBackground(WHITE);
+      DrawTexture(texture, INIT_WIN_WIDTH / 2 - texture.width / 2,
+                  INIT_WIN_HEIGHT / 2 - texture.height / 2, WHITE);
+      DrawRectangleLines(0, 0, INIT_WIN_WIDTH / 2 - texture.width / 2,
+                         INIT_WIN_HEIGHT / 2 - texture.height / 2, WHITE);
 
       BeginMode3D(mainCammera);
 
       // collision check
       if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
          selfColor = con->flags & IS_SERVER ? 0 : 1;
-         if (board->playing == selfColor) {
+         if (board->playing == selfColor && con->flags & CONNECTED) {
             handled = false;
             selected = false;
             ray = GetScreenToWorldRay(GetMousePosition(), mainCammera);
@@ -81,11 +113,23 @@ void renderBoard(board *board, Conn *con) {
          for (int x = 0; x < 8; x++) {
             if (board->layout[x][y] != NULL) {
                if (x == hit[0] && y == hit[1] &&
-                   board->layout[x][y]->color == board->playing &&
-                   board->playing == selfColor) {
+                   board->layout[x][y]->color == board->playing) {
                   selected = true;
-                  DrawCube((Vector3){-7.0f + 2 * x, 1, -7.0f + 2 * y}, 1.8, 2,
-                           1.8, RED);
+                  if (board->layout[x][y]->typ == 1) {
+                     piecesObj[1].transform = MatrixRotateXYZ(
+                         (Vector3){0,
+                                   board->layout[x][y]->color ? -knightRotation
+                                                              : knightRotation,
+                                   0});
+                  }
+                  piecesObj[board->layout[x][y]->typ]
+                      .materials[0]
+                      .maps[MATERIAL_MAP_DIFFUSE]
+                      .texture = pieceTx[board->layout[x][y]->typ]
+                                        [board->layout[x][y]->color];
+                  DrawModel(piecesObj[board->layout[x][y]->typ],
+                            (Vector3){-7.0f + 2 * x, 0, -7.0f + 2 * y}, 8.0f,
+                            RED);
                   if (!handled) {
                      board->clearAllFlags();
                      if (board->layout[x][y]->typ == KING)
@@ -104,10 +148,23 @@ void renderBoard(board *board, Conn *con) {
                      notMoved = true;
                      handled = true;
                   }
-               } else
-                  DrawCube((Vector3){-7.0f + 2 * x, 1, -7.0f + 2 * y}, 1.8, 2,
-                           1.8,
-                           board->layout[x][y]->color == 1 ? BLACK : LIGHTGRAY);
+               } else {
+                  piecesObj[board->layout[x][y]->typ]
+                      .materials[0]
+                      .maps[MATERIAL_MAP_DIFFUSE]
+                      .texture = pieceTx[board->layout[x][y]->typ]
+                                        [board->layout[x][y]->color];
+                  if (board->layout[x][y]->typ == 1) {
+                     piecesObj[1].transform = MatrixRotateXYZ(
+                         (Vector3){0,
+                                   board->layout[x][y]->color ? -knightRotation
+                                                              : knightRotation,
+                                   0});
+                  }
+                  DrawModel(piecesObj[board->layout[x][y]->typ],
+                            (Vector3){-7.0f + 2 * x, 0, -7.0f + 2 * y}, 8.0f,
+                            WHITE);
+               }
             }
             if (selected &&
                 (board->flags[board->playing][MOVE] & moves).value(x, y) == 1)
@@ -143,11 +200,14 @@ void renderBoard(board *board, Conn *con) {
       EndMode3D();
       selfColor = con->flags & IS_SERVER ? 0 : 1;
 
-      DrawRectangle(0, 0, 170, 60, Fade(BLUE, 0.8f));
+      DrawRectangle(0, 0, 170, 80, Fade(BLUE, 0.8f));
 
       sprintf(timeText, "%s time: %lu:%lu", names[selfColor],
               time[selfColor] / 60, time[selfColor] % 60);
       DrawText(timeText, 10, 10, 20, BLACK);
+
+      sprintf(timeText, "Playing %s", names[selfColor]);
+      DrawText(timeText, 10, 50, 20, BLACK);
 
       selfColor ^= 1;
 
@@ -162,7 +222,14 @@ void renderBoard(board *board, Conn *con) {
          else
             DrawText("Player #2 not connected", 250, 290, 40, BLACK);
       }
-      // DrawFPS(10, 10);
+      DrawFPS(INIT_WIN_WIDTH - 90, 10);
       EndDrawing();
    }
+   for (int x = 0; x < 6; x++) {
+      UnloadModel(piecesObj[x]);
+      UnloadTexture(pieceTx[x][0]);
+      UnloadTexture(pieceTx[x][1]);
+   }
+   UnloadTexture(texture);
+   UnloadImage(background);
 }
