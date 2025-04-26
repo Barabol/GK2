@@ -5,7 +5,7 @@
 #include <raymath.h>
 void renderBoard(board *board, Conn *con) {
    static const char *names[2] = {"White", "Black"};
-   InitWindow(INIT_WIN_WIDTH, INIT_WIN_HEIGHT, "projekt grafika II");
+   InitWindow(INIT_WIN_WIDTH, INIT_WIN_HEIGHT, WINDOW_NAME);
    Camera3D mainCammera = {0};
    mainCammera.position = (Vector3){0.0f, 10.0f, 10.0f};
    mainCammera.target = (Vector3){0.0f, 0.0f, 0.0f};
@@ -24,6 +24,7 @@ void renderBoard(board *board, Conn *con) {
    bool selected = false;
    bool notMoved = false;
    bool handled = true;
+   bool notVin = true;
    Image background = LoadImage("src/img/background.jpg");
    ImageResize(&background, INIT_WIN_WIDTH, INIT_WIN_HEIGHT);
    Texture2D texture = LoadTextureFromImage(background);
@@ -55,13 +56,16 @@ void renderBoard(board *board, Conn *con) {
         LoadTexture("src/pieces/szpetny_krol_czarny.png")}};
    float knightRotation = 1.57079633f;
    while (!WindowShouldClose()) {
-      if (con->flags & CONNECTED)
-         frameTime += GetFrameTime();
-      if (frameTime >= 1) {
-         frameTime -= 1;
-         time[board->playing] -= 1;
+      if (notVin) {
+         if (con->flags & CONNECTED)
+            frameTime += GetFrameTime();
+         if (frameTime >= 1) {
+            frameTime -= 1;
+            time[board->playing] -= 1;
+				if(time[board->playing] == 0)
+					notVin = false;
+         } 
       }
-
       UpdateCamera(&mainCammera, CAMERA_FREE);
       BeginDrawing();
       ClearBackground(WHITE);
@@ -75,7 +79,7 @@ void renderBoard(board *board, Conn *con) {
       // collision check
       if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
          selfColor = con->flags & IS_SERVER ? 0 : 1;
-         if (board->playing == selfColor && con->flags & CONNECTED) {
+         if (board->playing == selfColor && con->flags & CONNECTED && notVin) {
             handled = false;
             selected = false;
             ray = GetScreenToWorldRay(GetMousePosition(), mainCammera);
@@ -193,7 +197,10 @@ void renderBoard(board *board, Conn *con) {
             board->kings[board->playing][0] = hit[0];
             board->kings[board->playing][1] = hit[1];
          }
-         board->move(piece[0], piece[1], hit[0], hit[1]);
+         if (board->move(piece[0], piece[1], hit[0], hit[1]).szach ==
+             SZACH_MAT) {
+            notVin = false;
+         }
          notMoved = false;
       }
 
@@ -214,8 +221,11 @@ void renderBoard(board *board, Conn *con) {
       sprintf(timeText, "%s time: %lu:%lu", names[selfColor],
               time[selfColor] / 60, time[selfColor] % 60);
       DrawText(timeText, 10, 30, 20, BLACK);
-
-      if (!(con->flags & CONNECTED)) {
+      if (!notVin) {
+         sprintf(timeText, "       %s won", names[board->playing ^ 1]);
+         DrawRectangle(240, 290, 530, 40, Fade(BLUE, 0.8f));
+         DrawText(timeText, 265, 290, 40, BLACK);
+      } else if (!(con->flags & CONNECTED)) {
          DrawRectangle(240, 290, 530, 40, Fade(BLUE, 0.8f));
          if (con->flags & CON_CLOASED)
             DrawText("Player #2 quit the game", 265, 290, 40, BLACK);
